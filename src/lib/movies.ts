@@ -13,7 +13,7 @@ export interface Item {
   demoScore: number; // 0-10, demonstrativa
   description: string;
   moods: Mood[]; // regra explícita de humor
-  poster?: string;
+  poster?: string | undefined;
   source: "demo" | "tmdb";
 }
 

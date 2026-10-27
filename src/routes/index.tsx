@@ -196,7 +196,7 @@ function Index() {
                   <ul className="mt-2 space-y-1">
                     {stats.topGenres.map(([g, n]) => (
                       <li key={g} className="flex items-center gap-2"><span className="w-28 shrink-0">{g}</span>
-                        <span className="h-2 rounded bg-primary/70" style={{ width: `${(n / stats.topGenres[0][1]) * 100}%` }} /><span className="text-muted-foreground">{n}</span></li>))}
+                        <span className="h-2 rounded bg-primary/70" style={{ width: `${(n / (stats.topGenres[0]?.[1] ?? 1)) * 100}%` }} /><span className="text-muted-foreground">{n}</span></li>))}
                   </ul>
                 </div>
               </div>)}

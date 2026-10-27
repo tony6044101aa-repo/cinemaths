@@ -12,7 +12,7 @@ type Raw = { id: number; title?: string; name?: string; media_type?: string; gen
 export const fetchTmdb = createServerFn({ method: "GET" })
   .inputValidator((d: { query?: string }) => ({ query: (d?.query ?? "").slice(0, 100) }))
   .handler(async ({ data }): Promise<{ enabled: boolean; items: Item[] }> => {
-    const key = process.env.TMDB_API_KEY;
+    const key = process.env['TMDB_API_KEY'];
     if (!key) return { enabled: false, items: [] };
     const isBearer = key.length > 40;
     const base = "https://api.themoviedb.org/3";
@@ -30,7 +30,7 @@ export const fetchTmdb = createServerFn({ method: "GET" })
           id: `tmdb-${r.media_type}-${r.id}`,
           title: r.title ?? r.name ?? "Sem título",
           type: r.media_type === "tv" ? "serie" : "filme",
-          genres: [...new Set((r.genre_ids ?? []).map((g) => GENRE_MAP[g]).filter(Boolean))],
+          genres: [...new Set((r.genre_ids ?? []).map((g) => GENRE_MAP[g]).filter((g): g is string => Boolean(g)))],
           duration: r.media_type === "tv" ? 45 : 110,
           ageRating: "NI",
           demoScore: Math.round((r.vote_average ?? 0) * 10) / 10,

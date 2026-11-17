@@ -1,0 +1,2 @@
+- [x] Enriquecer títulos TMDB com duração e classificação brasileira.
+- [x] Usar títulos reais nas recomendações e verificar busca e favoritos.

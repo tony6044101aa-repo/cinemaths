@@ -21,7 +21,7 @@ export function recommend(prefs: Preferences, catalog: Item[]): Scored[] {
   const max = ageIndex(prefs.maxAge);
   return catalog
     .filter((i) => i.ageRating !== "NI" && ageIndex(i.ageRating) <= max)
-    .filter((i) => i.duration <= prefs.time)
+    .filter((i) => i.duration > 0 && i.duration <= prefs.time)
     .map((item) => {
       const common = item.genres.filter((g) => prefs.genres.includes(g));
       const reasons = common.length ? [`Gêneros: ${common.join(", ")}`] : [];

@@ -4,6 +4,8 @@ import { AGE_RATINGS, CATALOG, GENRES, MOODS, type AgeRating, type Item, type Mo
 import { favoriteStats, recommend, validatePrefs, type Scored } from "@/lib/recommend";
 import * as store from "@/lib/storage";
 import { fetchTmdb } from "@/lib/tmdb.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,6 +25,10 @@ const typeLabel = (t: Item["type"]) => (t === "filme" ? "Filme" : "Série");
 const ageLabel = (a: Item["ageRating"]) => (a === "NI" ? "Não informada" : a === "L" ? "Livre" : `${a} anos`);
 
 function Index() {
+  const fetchCatalog = useServerFn(fetchTmdb);
+  const [trending, setTrending] = useState<Item[]>([]);
+  const [tmdbLoading, setTmdbLoading] = useState(true);
+  const [tmdbError, setTmdbError] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [favs, setFavs] = useState<Item[]>([]);
   const [history, setHistory] = useState<store.HistoryEntry[]>([]);
@@ -53,9 +59,21 @@ function Index() {
   useEffect(() => { document.documentElement.classList.toggle("dark", theme === "dark"); }, [theme]);
 
   useEffect(() => {
-    const t = setTimeout(() => { fetchTmdb({ data: { query: q.trim().length >= 2 ? q.trim() : "" } }).then(setTmdb).catch(() => {}); }, 400);
-    return () => clearTimeout(t);
-  }, [q]);
+    let active = true;
+    setTmdbLoading(true);
+    const query = q.trim().length >= 2 ? q.trim() : "";
+    const t = setTimeout(() => {
+      fetchCatalog({ data: { query } }).then(result => {
+        if (!active) return;
+        setTmdb(result);
+        setTmdbError(result.error ?? "");
+        if (!query) setTrending(result.items);
+      }).catch(() => {
+        if (active) setTmdbError("Não foi possível consultar o TMDB. Tente novamente em instantes.");
+      }).finally(() => { if (active) setTmdbLoading(false); });
+    }, 400);
+    return () => { active = false; clearTimeout(t); };
+  }, [q, fetchCatalog]);
 
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(""), 2200); };
 
@@ -70,7 +88,7 @@ function Index() {
     const errs = validatePrefs(prefs);
     setErrors(errs);
     if (errs.length) return;
-    const r = recommend(prefs, CATALOG);
+    const r = recommend(prefs, tmdb.enabled && trending.length ? trending : CATALOG);
     setRecs(r);
     setHistory(store.addHistory(r.map((s) => s.item)));
   };
@@ -144,7 +162,7 @@ function Index() {
               <ul role="alert" className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
                 {errors.map((e) => <li key={e}>{e}</li>)}
               </ul>)}
-            <button type="submit" className="w-full rounded-lg bg-primary py-3 font-semibold text-primary-foreground hover:opacity-90 focus-ring">Gerar 3 recomendações</button>
+            <Button type="submit" disabled={tmdbLoading && !trending.length} className="w-full py-3">Gerar 3 recomendações</Button>
           </form>
 
           <div aria-live="polite">
@@ -160,8 +178,10 @@ function Index() {
         <section id="catalogo" aria-labelledby="cat-t">
           <h2 id="cat-t" className="font-display text-3xl">Catálogo</h2>
           <p className="text-sm text-muted-foreground">
-            {tmdb.enabled ? "Inclui títulos ao vivo da TMDB (nota TMDB; classificação não informada)." : "Catálogo de demonstração. Conecte uma chave da TMDB para títulos reais."}
+            {tmdb.enabled ? "Títulos do TMDB · classificação brasileira quando disponível." : "Catálogo de demonstração. Conecte uma chave da TMDB para títulos reais."}
           </p>
+          {tmdbLoading && <p role="status" className="mt-2 text-sm text-muted-foreground">Consultando TMDB…</p>}
+          {tmdbError && <p role="alert" className="mt-2 text-sm text-destructive">{tmdbError}</p>}
           <div className="mt-4 grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
             <label className="text-sm">Buscar por título<input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ex.: dragões" className="field" /></label>
             <label className="text-sm">Gênero<select value={fGenre} onChange={(e) => setFGenre(e.target.value)} className="field"><option value="">Todos</option>{GENRES.map((g) => <option key={g}>{g}</option>)}</select></label>
@@ -245,7 +265,7 @@ function Card({ item, reasons, favs, ratings, onFav, onRate }: {
           <button onClick={() => onFav(item)} aria-pressed={fav} aria-label={fav ? `Remover ${item.title} dos favoritos` : `Adicionar ${item.title} aos favoritos`}
             className={`text-xl leading-none focus-ring rounded ${fav ? "text-primary" : "text-muted-foreground hover:text-primary"}`}>{fav ? "♥" : "♡"}</button>
         </div>
-        <p className="text-xs text-muted-foreground">{typeLabel(item.type)} · {item.duration} min{item.type === "serie" ? "/ep" : ""}{item.source === "tmdb" ? " (estimado)" : ""} · {ageLabel(item.ageRating)}</p>
+        <p className="text-xs text-muted-foreground">{typeLabel(item.type)} · {item.duration > 0 ? `${item.duration} min${item.type === "serie" ? "/ep" : ""}` : "Duração não informada"} · {ageLabel(item.ageRating)}</p>
         <p className="text-xs">{item.genres.join(", ") || "Gênero não informado"}</p>
         <p className="line-clamp-3 text-sm text-muted-foreground">{item.description}</p>
         {reasons && reasons.length > 0 && <p className="text-xs text-primary">{reasons.join(" · ")}</p>}

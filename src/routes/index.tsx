@@ -265,7 +265,7 @@ function Card({ item, reasons, favs, ratings, onFav, onRate }: {
           <button onClick={() => onFav(item)} aria-pressed={fav} aria-label={fav ? `Remover ${item.title} dos favoritos` : `Adicionar ${item.title} aos favoritos`}
             className={`text-xl leading-none focus-ring rounded ${fav ? "text-primary" : "text-muted-foreground hover:text-primary"}`}>{fav ? "♥" : "♡"}</button>
         </div>
-        <p className="text-xs text-muted-foreground">{typeLabel(item.type)} · {item.duration > 0 ? `${item.duration} min${item.type === "serie" ? "/ep" : ""}` : "Duração não informada"} · {ageLabel(item.ageRating)}</p>
+        <p className="text-xs text-muted-foreground">{typeLabel(item.type)} · {ageLabel(item.ageRating)}</p>
         <p className="text-xs">{item.genres.join(", ") || "Gênero não informado"}</p>
         <p className="line-clamp-3 text-sm text-muted-foreground">{item.description}</p>
         {reasons && reasons.length > 0 && <p className="text-xs text-primary">{reasons.join(" · ")}</p>}
